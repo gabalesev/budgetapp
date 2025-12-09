@@ -63,7 +63,7 @@ func (mailer *Mailer) SendEmail(recipient string, templateFile string, data Emai
 	}
 
 	htmlBody := new(bytes.Buffer)
-	err = tmpl.ExecuteTemplate(htmlBody, "body", data)
+	err = tmpl.ExecuteTemplate(htmlBody, "htmlBody", data)
 	if err != nil {
 		mailer.logger.Error("Error executing email subject template:", err)
 		return err

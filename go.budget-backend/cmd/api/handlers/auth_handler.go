@@ -23,11 +23,10 @@ func (h *Handler) RegisterHandler(c echo.Context) error {
 
 	fmt.Println(*payload)
 
-	validationErr := api_models.ValidateBodyRequest(c, payload)
+	validationErr := h.ValidateBodyRequest(c, payload)
 
 	if validationErr != nil {
 		c.Logger().Error(validationErr)
-		//fmt.Println(validationErr)
 		return api_models.SendFailedValidationResponse(c, "Validation failed", validationErr)
 	}
 
@@ -50,7 +49,7 @@ func (h *Handler) RegisterHandler(c echo.Context) error {
 			FirstName string
 			LoginLink string
 		}{
-			FirstName: user.FirstName,
+			FirstName: *user.FirstName,
 			LoginLink: "http://localhost:3000/login",
 		},
 	}
@@ -80,7 +79,7 @@ func (h *Handler) LoginHandler(c echo.Context) error {
 		return api_models.SendBadRequestResponse(c, err.Error())
 	}
 
-	validationErr := api_models.ValidateBodyRequest(c, payload)
+	validationErr := h.ValidateBodyRequest(c, payload)
 	if validationErr != nil {
 		c.Logger().Error(validationErr)
 		return api_models.SendFailedValidationResponse(c, "Validation failed", validationErr)

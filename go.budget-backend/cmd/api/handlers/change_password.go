@@ -8,7 +8,7 @@ import (
 	"go.budget-backend/internal/models"
 )
 
-func (h *Handler) UpdateUserPassword(c echo.Context) error {
+func (h *Handler) UpdateUserPasswordHandler(c echo.Context) error {
 	userRetrieved, ok := c.Get("user").(models.UserModel)
 	if !ok {
 		h.Logger.Error("User not found in context")
@@ -24,7 +24,7 @@ func (h *Handler) UpdateUserPassword(c echo.Context) error {
 		return api_models.SendBadRequestResponse(c, "Invalid password.")
 	}
 
-	validationErr := api_models.ValidateBodyRequest(c, payload)
+	validationErr := h.ValidateBodyRequest(c, payload)
 	if validationErr != nil {
 		c.Logger().Error(validationErr)
 		return api_models.SendFailedValidationResponse(c, "Validation failed", validationErr)

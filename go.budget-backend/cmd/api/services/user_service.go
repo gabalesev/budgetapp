@@ -27,11 +27,11 @@ func (userService UserService) CreateUser(userRequest api_models.RegisterUserReq
 	}
 
 	user := models.UserModel{
-		FirstName: userRequest.FirstName,
-		LastName:  userRequest.LastName,
-		Email:     userRequest.Email,
+		FirstName: &userRequest.FirstName,
+		LastName:  &userRequest.LastName,
+		Email:     *userRequest.Email,
 		Password:  hashedPassword,
-		Gender:    userRequest.Gender,
+		Gender:    &userRequest.Gender,
 	}
 	fmt.Println(user)
 

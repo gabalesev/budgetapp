@@ -6,7 +6,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type ApiResponse map[string]any
+type ValidationError struct {
+	Error     string `jsob:"error"`
+	Key       string `json:"key"`
+	Condition string `json:"condition"`
+}
 
 type JsonSuccessResponmse struct {
 	Success bool        `json:"success"`
@@ -34,6 +38,9 @@ func SendSuccessResponse(c echo.Context, message string, data interface{}) error
 }
 
 func SendFailedValidationResponse(c echo.Context, message string, errors []*ValidationError) error {
+	if message == "" {
+		message = "Validation failed"
+	}
 	return c.JSON(http.StatusBadRequest, JsonFailedValidationResponse{
 		Success: false,
 		Message: message,
