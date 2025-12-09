@@ -7,10 +7,10 @@ services:
       - ./mysql-init:/docker-entrypoint-initdb.d:ro
     restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=pass54321
-      - MYSQL_DATABASE=budgetapp
-      - MYSQL_USER=budgetapp
-      - MYSQL_PASSWORD=pass12345
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     ports:
       - 3306:3306
     networks:

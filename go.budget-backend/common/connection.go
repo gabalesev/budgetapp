@@ -24,7 +24,8 @@ func NewMySQL() (*gorm.DB, error) {
 	dns := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=Local", username, password, host, port, database)
 	fmt.Printf("DB: %s", dns)
 	db, err := gorm.Open(mysql.Open(dns), &gorm.Config{
-		Logger: logger.Default,
+		Logger:         logger.Default,
+		TranslateError: true,
 	})
 
 	if err != nil {
