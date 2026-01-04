@@ -23,10 +23,18 @@ func (app *Application) routes(handler handlers.Handler) {
 
 	categoriesRoutes := apiGroup.Group("/categories", app.appMiddleware.AuthMiddleware)
 	{
-		categoriesRoutes.GET("/all", handler.GetAllCategoriesHandler)
-		categoriesRoutes.POST("/", handler.CreateCategoryHandler)
+		categoriesRoutes.GET("", handler.GetAllCategoriesHandler)
+		categoriesRoutes.POST("", handler.CreateCategoryHandler)
 		categoriesRoutes.DELETE("/:id", handler.DeleteCategoryByIDHandler)
 		categoriesRoutes.GET("/:id", handler.GetCategoryByIDHandler)
+	}
+
+	budgetsRoutes := apiGroup.Group("/budgets", app.appMiddleware.AuthMiddleware)
+	{
+		budgetsRoutes.GET("", handler.GetAllBudgetsHandler)
+		budgetsRoutes.POST("", handler.CreateBudgetHandler)
+		//budgetsRoutes.DELETE("/:id", handler.DeleteBudgetByIDHandler)
+		//budgetsRoutes.GET("/:id", handler.GetBudgetByIDHandler)
 	}
 
 	app.server.GET("/", handler.HealthCheck)

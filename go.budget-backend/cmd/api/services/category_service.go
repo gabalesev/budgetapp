@@ -22,10 +22,23 @@ func NewCategoryService(db *gorm.DB) *CategoryService {
 func (c CategoryService) GetAllCategories(pagination *common.Pagination, categories []*models.CategoryModel) (*common.Pagination, error) {
 
 	//result := c.DB.Find(&categories)
-	c.DB.Scopes(pagination.Paginate()).Find(&categories)
+	err := c.DB.Scopes(pagination.Paginate()).Find(&categories)
+	if err.Error != nil {
+		return nil, errors.New("failed to fetch categories")
+	}
 	pagination.Items = categories
 
 	return pagination, nil
+}
+
+func (c CategoryService) GetMultipleCategories(categoryIDs []uint) ([]*models.CategoryModel, error) {
+	var categories []*models.CategoryModel
+	err := c.DB.Where("id IN ?", categoryIDs).Find(&categories)
+	if err.Error != nil {
+		return nil, errors.New("failed to fetch categories")
+	}
+
+	return categories, nil
 }
 
 func (c CategoryService) Create(data *api_models.CategoryRequest) (*models.CategoryModel, error) {
