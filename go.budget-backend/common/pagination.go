@@ -1,7 +1,6 @@
 package common
 
 import (
-	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -19,8 +18,6 @@ type Pagination struct {
 }
 
 func (p *Pagination) GetPage() int {
-	fmt.Print("Page number: ")
-	fmt.Println(p.PageNumber)
 	if p.PageNumber <= 0 {
 		p.PageNumber = 1
 	}
@@ -59,15 +56,6 @@ func NewPagination(model interface{}, r *http.Request, db *gorm.DB) *Pagination 
 	totalPages := int(math.Ceil(float64(totalItems) / float64(pagination.GetPageSize())))
 
 	pagination.TotalPages = totalPages
-
-	fmt.Print("Page size: ")
-	fmt.Println(pagination.PageSize)
-	fmt.Print("Page number: ")
-	fmt.Println(pagination.PageNumber)
-	fmt.Print("Total items: ")
-	fmt.Println(pagination.TotalItems)
-	fmt.Print("total pages: ")
-	fmt.Println(totalPages)
 
 	return &pagination
 }

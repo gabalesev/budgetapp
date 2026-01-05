@@ -5,7 +5,7 @@ import "time"
 type BudgetModel struct {
 	BaseModel
 	Title       string           `gorm:"index;type:varchar(255);not null" json:"title"`
-	Slug        string           `gorm:"index;type:varchar(255);not null" json:"slug"`
+	Slug        string           `gorm:"index;type:varchar(255);not null;uniqueIndex:unique_user_id_slug_year_month" json:"slug"`
 	UserID      uint             `gorm:"column:user_id;uniqueIndex:unique_user_id_slug_year_month;not null" json:"user_id"`
 	Description *string          `gorm:"type:text" json:"description"`
 	Amount      float64          `gorm:"type:decimal(10,2);not null" json:"amount"`
