@@ -33,7 +33,7 @@ func (app *Application) routes(handler handlers.Handler) {
 	{
 		budgetsRoutes.GET("", handler.GetAllBudgetsHandler)
 		budgetsRoutes.POST("", handler.CreateBudgetHandler)
-		//budgetsRoutes.DELETE("/:id", handler.DeleteBudgetByIDHandler)
+		budgetsRoutes.PUT("/:id", handler.UpdateBudgetHandler)
 		//budgetsRoutes.GET("/:id", handler.GetBudgetByIDHandler)
 	}
 
