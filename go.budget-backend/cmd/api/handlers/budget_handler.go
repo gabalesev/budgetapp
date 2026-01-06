@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"errors"
+
 	"github.com/labstack/echo/v4"
 	"go.budget-backend/cmd/api/api_models"
 	"go.budget-backend/cmd/api/services"
 	"go.budget-backend/common"
 	"go.budget-backend/internal/models"
+	"gorm.io/gorm"
 )
 
 func (h *Handler) GetAllBudgetsHandler(c echo.Context) error {
@@ -42,38 +45,35 @@ func (h *Handler) CreateBudgetHandler(c echo.Context) error {
 		h.Logger.Error(err)
 		return api_models.SendFailedValidationResponse(c, "Invalid request payload", validationErrors)
 	}
-
-	budgetService := services.BudgetService{
-		DB: h.DB,
-	}
-	user, ok := c.Get("user").(models.UserModel)
-	if !ok {
-		h.Logger.Error("User not found in context")
-		return api_models.SendInternalServerErrorResponse(c, "Something went wrong while fetching user.")
-	}
-	createdBudget, err := budgetService.Create(payload, user.ID)
-	if err != nil {
-		h.Logger.Error(err)
-		return api_models.SendInternalServerErrorResponse(c, "Failed to create budget")
-	}
-
-	categoryService := services.CategoryService{
-		DB: h.DB,
-	}
-
+	categoryService := services.CategoryService{DB: h.DB}
 	categories, err := categoryService.GetMultipleCategories(payload.Categories)
 	if err != nil {
-		h.Logger.Error(err)
 		return api_models.SendInternalServerErrorResponse(c, "Failed to fetch categories")
 	}
 
-	err = h.DB.Model(&createdBudget).Association("Categories").Replace(categories)
-	if err != nil {
-		h.Logger.Error(err)
-		return api_models.SendInternalServerErrorResponse(c, "Failed to associate categories with budget")
-	}
+	user, _ := c.Get("user").(models.UserModel)
+	createdBudget := &models.BudgetModel{}
 
-	createdBudget.Categories = categories
+	err = h.DB.Transaction(func(tx *gorm.DB) error {
+		budgetService := services.BudgetService{DB: tx}
+
+		createdBudget, err = budgetService.Create(payload, user.ID)
+		if err != nil {
+			return errors.New("Budget could  not be created")
+		}
+
+		err = tx.Model(createdBudget).Association("Categories").Replace(categories)
+		if err != nil {
+			return errors.New("Failed to associate categories with budget")
+		}
+		createdBudget.Categories = categories
+
+		return nil
+	})
+
+	if err != nil {
+		return api_models.SendInternalServerErrorResponse(c, err.Error())
+	}
 
 	return api_models.SendSuccessResponse(c, "Budget created successfully", createdBudget)
 }
@@ -102,45 +102,92 @@ func (h *Handler) UpdateBudgetHandler(c echo.Context) error {
 		return api_models.SendFailedValidationResponse(c, "Invalid request payload", validationErrors)
 	}
 
+	user, _ := c.Get("user").(models.UserModel)
+
+	budget, err := budgetService.GetByID(user.ID, budgetId.ID)
+	if err != nil || user.ID != budget.UserID {
+		if err != nil {
+			h.Logger.Error(err)
+		}
+		return api_models.SendNotFoundResponse(c, "Budget not found")
+	}
+
+	updatedBudget := &models.BudgetModel{}
+	var categories []*models.CategoryModel
+	if payload.Categories != nil {
+		categories, err = categoryService.GetMultipleCategories(payload.Categories)
+		if err != nil {
+			h.Logger.Error(err)
+			return api_models.SendInternalServerErrorResponse(c, "Failed to fetch categories")
+		}
+	}
+
+	err = h.DB.Transaction(func(tx *gorm.DB) error {
+		budgetService := services.BudgetService{DB: tx}
+
+		updatedBudget, err = budgetService.Update(budget, payload, budgetId.ID)
+
+		if err != nil {
+			h.Logger.Error(err)
+			return errors.New(err.Error())
+		}
+		if len(categories) > 0 {
+			err = tx.Model(&updatedBudget).Association("Categories").Replace(categories)
+			if err != nil {
+				h.Logger.Error(err)
+				return errors.New("Failed to associate categories with budget")
+			}
+			updatedBudget.Categories = categories
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		if err.Error() == "Budget with selected month, year and title already exists." {
+			return api_models.SendBadRequestResponse(c, err.Error())
+		}
+		return api_models.SendInternalServerErrorResponse(c, err.Error())
+	}
+
+	return api_models.SendSuccessResponse(c, "Budget updated successfully", updatedBudget)
+}
+
+func (h *Handler) DeleteBudgetHandler(c echo.Context) error {
 	user, ok := c.Get("user").(models.UserModel)
 	if !ok {
 		h.Logger.Error("User not found in context")
 		return api_models.SendInternalServerErrorResponse(c, "Something went wrong while fetching user.")
 	}
 
+	var budgetId api_models.IDParamRequest
+	err := (&echo.DefaultBinder{}).BindPathParams(c, &budgetId)
+	if err != nil {
+		h.Logger.Error(err)
+		return api_models.SendBadRequestResponse(c, err.Error())
+	}
+
+	budgetService := services.NewBudgetService(h.DB)
+
 	budget, err := budgetService.GetByID(user.ID, budgetId.ID)
-	if err != nil {
-		h.Logger.Error(err)
-		return api_models.SendInternalServerErrorResponse(c, "Failed to fetch budget")
-	}
-
-	if user.ID != budget.UserID {
-		h.Logger.Error("Unauthorized access to budget")
-		return api_models.SendErrorResponse(c, "Unauthorized access to budget", 403)
-	}
-
-	createdBudget, err := budgetService.Update(budget, payload, budgetId.ID)
-	if err != nil {
-		h.Logger.Error(err)
-		if err.Error() == "Budget with selected month, year and title already exists." {
-			return api_models.SendBadRequestResponse(c, err.Error())
+	if err != nil || user.ID != budget.UserID {
+		if err != nil {
+			h.Logger.Error(err)
 		}
-		return api_models.SendInternalServerErrorResponse(c, "Failed to update budget")
+		return api_models.SendNotFoundResponse(c, "Budget not found")
 	}
 
-	categories, err := categoryService.GetMultipleCategories(payload.Categories)
+	err = h.DB.Model(&budget).Association("Categories").Clear()
 	if err != nil {
 		h.Logger.Error(err)
-		return api_models.SendInternalServerErrorResponse(c, "Failed to fetch categories")
+		return api_models.SendInternalServerErrorResponse(c, "Failed to clear budget categories")
 	}
 
-	err = h.DB.Model(&createdBudget).Association("Categories").Replace(categories)
+	query := h.DB.Scopes(common.WhereUserIDScope(user.ID))
+	err = query.Delete(&models.BudgetModel{}, budget.ID).Error
 	if err != nil {
 		h.Logger.Error(err)
-		return api_models.SendInternalServerErrorResponse(c, "Failed to associate categories with budget")
+		return api_models.SendInternalServerErrorResponse(c, "Failed to delete budget")
 	}
-
-	createdBudget.Categories = categories
-
-	return api_models.SendSuccessResponse(c, "Budget updated successfully", createdBudget)
+	return api_models.SendSuccessResponse(c, "Budget deleted successfully", nil)
 }

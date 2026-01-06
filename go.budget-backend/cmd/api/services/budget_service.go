@@ -51,7 +51,7 @@ func (b BudgetService) Create(payload *api_models.CreateBudgetRequest, UserID ui
 	model.Month = uint(model.Date.Month())
 	model.Year = uint16(model.Date.Year())
 
-	budgetCount, err := b.GetBudgetCount(model.UserID, model.Month, model.Year, model.Slug)
+	budgetCount, err := b.GetBudgetCount(model.UserID, model.Month, model.Year, model.Slug, 0)
 	if err == nil && budgetCount != 0 {
 		return nil, errors.New("category with this name already exists or existed")
 	}
@@ -74,10 +74,10 @@ func (b BudgetService) GetByID(userID uint, budgetID uint) (*models.BudgetModel,
 	return &budgetRetrieved, nil
 }
 
-func (b BudgetService) GetBudgetCount(userID uint, month uint, year uint16, slug string) (int64, error) {
+func (b BudgetService) GetBudgetCount(userID uint, month uint, year uint16, slug string, excludeID uint) (int64, error) {
 	var budgetCount int64
 	result := b.DB.Model(models.BudgetModel{}).
-		Where("user_id = ? AND month = ? AND year = ? AND slug = ?", userID, month, year, slug).
+		Where("user_id = ? AND month = ? AND year = ? AND slug = ? AND id <> ?", userID, month, year, slug, excludeID).
 		Count(&budgetCount)
 	if result.Error != nil {
 		return -1, result.Error
@@ -104,7 +104,7 @@ func (b BudgetService) Update(budget *models.BudgetModel, payload *api_models.Up
 		budget.Slug = strings.Replace(slug, " ", "_", -1)
 	}
 
-	budgetCount, _ := b.GetBudgetCount(budget.UserID, uint(budget.Date.Month()), uint16(budget.Date.Year()), budget.Slug)
+	budgetCount, _ := b.GetBudgetCount(budget.UserID, uint(budget.Date.Month()), uint16(budget.Date.Year()), budget.Slug, budget.ID)
 	if budgetCount > 0 {
 		return nil, errors.New("Budget with selected month, year and title already exists.")
 	}

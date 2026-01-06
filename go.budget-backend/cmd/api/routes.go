@@ -33,8 +33,8 @@ func (app *Application) routes(handler handlers.Handler) {
 	{
 		budgetsRoutes.GET("", handler.GetAllBudgetsHandler)
 		budgetsRoutes.POST("", handler.CreateBudgetHandler)
-		budgetsRoutes.PUT("/:id", handler.UpdateBudgetHandler)
-		//budgetsRoutes.GET("/:id", handler.GetBudgetByIDHandler)
+		budgetsRoutes.PATCH("/:id", handler.UpdateBudgetHandler)
+		budgetsRoutes.DELETE("/:id", handler.DeleteBudgetHandler)
 	}
 
 	app.server.GET("/", handler.HealthCheck)
